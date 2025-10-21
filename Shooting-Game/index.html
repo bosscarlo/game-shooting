@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SHOOTING GAME</title>
+  <style>
+    /* ---------------------------------------------------------------------- */
+    /* MAIN PAGE STYLES */
+    /* ---------------------------------------------------------------------- */
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: url('Carnival/image/shooting bg.png') no-repeat center center/cover;
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4); 
+      z-index: 0;
+    }
+
+    .wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;           
+      max-width: 900px;
+      height: 100%;
+      position: relative;
+      z-index: 1;
+    }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      text-align: center;
+      width: 80%;           
+      max-width: 600px;
+    }
+
+    .card img {
+      width: 100%;
+      height: 400px;         
+      object-fit: cover;
+      transition: transform 0.4s ease;
+    }
+    
+    .card h2 {
+      margin: 0;
+      padding: 20px; 
+      font-size: 1.8rem; 
+      font-weight: bold;
+      color: #fcbe13;
+      background: #080808;
+      border-top: 1px solid #ddd;
+    }
+
+    .wrapper .card:hover {
+      transform: translateY(-20px); 
+      box-shadow: 0 12px 24px rgba(0,0,0,0.6); 
+    }
+
+    .card:hover img {
+      transform: scale(1.05); 
+    }
+    
+    .feedback-button {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: #fcbe13; 
+      color: #080808; 
+      border: none;
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 5px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      transition: transform 0.3s ease;
+      z-index: 2; 
+    }
+
+    .feedback-button:hover {
+      transform: scale(1.05);
+    }
+    
+    #registration-modal {
+      /* KEY: Full-screen overlay to cover index.html */
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      
+      /* MODAL BACKGROUND: Using the requested carnival/image/circus.jpg */
+      background: url('carnival/image/circus.jpg') no-repeat center center/cover;
+      
+      z-index: 100; /* Ensure it's on top of everything */
+      
+      /* Controlled by JS: default is 'none' for hidden */
+      display: none; 
+      
+      justify-content: center;
+      align-items: center;
+      
+      /* Dark overlay for the modal background itself */
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    
+    #registration-modal::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.4); 
+        z-index: 101; 
+    }
+
+
+    .form-container {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.5); 
+      width: 400px;
+      padding-bottom: 20px;
+      text-align: center;
+      overflow: hidden;
+      z-index: 102; /* Above the modal overlay */
+      position: relative; 
+      animation: fadeIn 0.5s ease-out; 
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.9); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    .form-header {
+      background: repeating-linear-gradient(
+        45deg,
+        #ff3c3c,
+        #ff3c3c 20px,
+        #ffd700 20px,
+        #ffd700 40px
+      );
+      height: 50px;
+      border-top-left-radius: 15px;
+      border-top-right-radius: 15px;
+    }
+
+    .form-title {
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      margin: 15px 0;
+      color: #ff3c3c;
+    }
+
+    #registrationForm {
+      padding: 0 30px;
+      text-align: left;
+    }
+
+    #registrationForm label {
+      display: block;
+      margin: 10px 0 5px;
+      font-weight: bold;
+      text-align: left; 
+    }
+
+    #registrationForm input, #registrationForm select {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #ff3c3c;
+      border-radius: 5px;
+      font-size: 14px;
+      margin-bottom: 15px;
+      box-sizing: border-box; 
+      display: block; 
+    }
+
+    #registrationForm button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 5px;
+      background: linear-gradient(to right, #ff3c3c, #ffd700);
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: 0.3s;
+    }
+
+    #registrationForm button:hover {
+      opacity: 0.9;
+    }
+
+    .note {
+      font-size: 12px;
+      margin-top: 10px;
+      color: #555;
+      text-align: center;
+    }
+    
+  </style>
+</head>
+<body>
+  
+  <audio id="bgMusic" src="carnival/audio/bg.mp3" loop></audio>
+  <audio id="clickSound" src="carnival/audio/click.mp3" preload="auto"></audio>
+
+  <div class="wrapper">
+    <div class="card" onclick="navigateTo('water.html')">
+      <img src="Carnival/image/shoot.png" alt="shoot">
+      <h2>CLICK TO PLAY</h2>
+    </div>
+
+    <button class="feedback-button" onclick="navigateTo('evaluation.html')">Feedback</button>
+  </div>
+  
+  
+  <div id="registration-modal">
+    <div class="form-container">
+        <div class="form-header"></div>
+        <h2 class="form-title">CARNIVAL REGISTRATION</h2>
+
+        <form id="registrationForm">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" placeholder="Enter your full name" required>
+
+          <label for="age">Age</label>
+          <input type="number" id="age" placeholder="Enter your age" required>
+
+          <label for="yearLevel">Year Level</label>
+          <select id="yearLevel" name="yearLevel" required>
+            <option value="" disabled selected>Select your year level</option>
+            <option value="1st Year">1st Year</option>
+            <option value="2nd Year">2nd Year</option>
+            <option value="3rd Year">3rd Year</option>
+            <option value="4th Year">4th Year</option>
+          </select>
+
+          <label for="section">Section</label>
+          <input type="text" id="section" placeholder="Enter your section" required>
+
+          <button type="submit" id="submitBtn">JOIN THE FUN 🎉</button>
+          <p class="note">Your information will be kept confidential.</p>
+        </form>
+    </div>
+  </div>
+
+
+  <script>
+    // Google App Script URL for Registration Sheet (Replaced with the user's URL)
+    const scriptURL = "https://script.google.com/macros/s/AKfycbx19wF8kQY29IQUZbVI7_LBVNhHE6qaHWovgFkQ3uCLagYpQufZaG337uPvgB-ESZ4V/exec"; 
+    const form = document.getElementById("registrationForm");
+    const submitBtn = document.getElementById("submitBtn");
+    const registrationModal = document.getElementById("registration-modal");
+
+    const bgMusic = document.getElementById('bgMusic');
+    const clickSound = document.getElementById('clickSound');
+
+    function playClickSound() {
+      if (clickSound) {
+        try {
+          clickSound.currentTime = 0;
+          clickSound.play();
+        } catch (err) {}
+      }
+    }
+
+    function playClickSoundAndNavigate(page) {
+      playClickSound();
+      setTimeout(() => {
+        window.location.href = page;
+      }, 100); 
+    }
+
+    function navigateTo(page) {
+      playClickSoundAndNavigate(page);
+    }
+    
+    function initializeAudio() {
+        const storedTime = parseFloat(sessionStorage.getItem('bgMusicTime'));
+        if (!isNaN(storedTime)) {
+            bgMusic.currentTime = storedTime;
+        }
+
+        const playPromise = bgMusic.play();
+        if (playPromise !== undefined) {
+            playPromise.then(() => {}).catch(error => {
+                document.addEventListener('click', function startAudio() {
+                    bgMusic.play();
+                    document.removeEventListener('click', startAudio);
+                }, { once: true });
+            });
+        }
+
+        setInterval(() => {
+            sessionStorage.setItem('bgMusicTime', bgMusic.currentTime);
+        }, 1000); 
+    }
+
+    // --- CRITICAL: REGISTRATION CHECK & MODAL DISPLAY ---
+    function checkRegistration() {
+      if (localStorage.getItem('isRegistered') !== 'true') {
+        // If NOT registered, SHOW the modal (registration.html content)
+        registrationModal.style.display = 'flex';
+        // Prevent background elements from being interacted with
+        document.body.style.overflow = 'hidden'; 
+        // Do NOT start background audio yet
+      } else {
+        // If registered, HIDE the modal and proceed to play music/game.
+        registrationModal.style.display = 'none';
+        document.body.style.overflow = 'auto'; 
+        initializeAudio();
+      }
+    }
+    
+    // Initial check on load
+    document.addEventListener('DOMContentLoaded', checkRegistration);
+    
+    // --- REGISTRATION SUBMISSION HANDLER ---
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Saving...";
+      playClickSound(); // Play sound on submit click
+
+      const payload = {
+        name: document.getElementById("name").value,
+        age: document.getElementById("age").value,
+        yearLevel: document.getElementById("yearLevel").value,
+        section: document.getElementById("section").value,
+      };
+
+      fetch(scriptURL, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      })
+        .then((res) => res.text())
+        .then((msg) => {
+          alert("Registration Successful! Welcome to the Carnival!"); 
+          
+          // CRITICAL: SET FLAG AND HIDE MODAL
+          localStorage.setItem('isRegistered', 'true'); 
+          form.reset();
+          
+          // HIDE MODAL (mawawala siya pagkatapos ma-fill-up)
+          registrationModal.style.display = 'none';
+          document.body.style.overflow = 'auto'; 
+          
+          // START GAME FLOW: Initialize audio and allow interaction on index.html
+          initializeAudio();
+
+        })
+        .catch((err) => {
+             console.error("Error:", err);
+             alert("An error occurred during registration. Please try again.");
+        })
+        .finally(() => {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "JOIN THE FUN 🎉";
+        });
+    });
+  </script>
+</body>
+</html>

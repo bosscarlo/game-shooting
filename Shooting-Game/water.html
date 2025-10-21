@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Target Challenge</title>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Bangers&display=swap');
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      height: 100vh;
+      margin: 0;
+      font-family: 'Bangers', cursive;
+      color: #fcbe13;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+      /* Full-screen background */
+      background: url('carnival/image/platform.png') no-repeat center center/cover;
+      /* FIX: Hide default cursor globally during active play */
+      cursor: none !important; 
+    }
+    
+    h1 {
+      font-size: 3em;
+      text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
+    }
+
+    #game-container {
+      background: rgba(0, 0, 0, 0.2); 
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.9);
+      padding: 20px;
+      padding-top: 50px; 
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      width: 840px; 
+      max-height: 95vh; 
+      z-index: 1;
+      /* Default state: Pointer events blocked, enabled only after 'Start Game' click */
+      pointer-events: none; 
+    }
+
+    canvas {
+      display: block;
+      width: 800px; 
+      height: 500px; 
+      border: none; 
+      margin: 0; 
+      padding: 0; 
+      margin-bottom: 10px;
+      box-sizing: content-box; 
+      background-color: transparent; 
+      
+      /* HIDE ORIGINAL CURSOR on canvas during gameplay */
+      cursor: none !important; 
+    }
+    
+    /* Controls element adjusted to use normal flow and margin */
+    #game-container .controls {
+      display: flex;
+      gap: 50px; 
+      margin-top: 15px; 
+      margin-bottom: 0;
+      flex-wrap: wrap;
+      justify-content: center;
+      z-index: 5; 
+    }
+
+    /* Game message moved to absolute position, below the timer, over the canvas */
+    .game-message {
+      position: absolute;
+      top: 60px; 
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 11; 
+      
+      font-size: 1.8em; 
+      min-height: 1.8em; 
+      margin: 0; 
+      
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 90%; 
+      color: #ffcc00; 
+      text-shadow: 1px 1px 3px #000;
+    }
+
+
+    button {
+      padding: 12px 25px;
+      font-size: 1.2em;
+      font-family: 'Bangers', cursive;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer; 
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+      transition: transform 0.3s ease-out, box-shadow 0.3s ease-out; 
+      /* FIX: Ensure cursor is visible on buttons (pointer override) */
+      cursor: pointer !important;
+    }
+
+    button:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    
+    #home-button:hover {
+        transform: scale(1.1) translateY(-5px) rotate(1deg);
+        box-shadow: 0 10px 20px rgba(50, 205, 50, 0.6); 
+    }
+    
+    #home-button {
+      background: linear-gradient(45deg, #32cd32, #228b22);
+    }
+
+
+    .hidden {
+      display: none;
+    }
+    
+    /* UI BOX STYLES */
+    .status-box {
+        position: absolute;
+        top: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        border: 2px solid #ffcc00;
+        border-radius: 5px;
+        padding: 5px 10px;
+        color: #ffcc00;
+        font-family: 'Bangers', cursive;
+        font-size: 1.5em;
+        text-shadow: 1px 1px 3px #000;
+        white-space: nowrap;
+        z-index: 10; 
+    }
+
+    #score-box {
+        left: 10px;
+    }
+
+    #misses-box {
+        right: 10px;
+    }
+
+    #timer-box {
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 1.8em;
+        padding: 8px 15px;
+        border-color: #ff4500;
+    }
+
+    /* Instructions modal */
+    #instructions-modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.9); 
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      /* PUSH Z-INDEX TO THE MAX FOR CLICKABILITY */
+      z-index: 9999; 
+      pointer-events: auto; 
+      /* Make sure cursor is visible on modal */
+      cursor: default !important; 
+    }
+
+    #instructions-content {
+      background: #fff;
+      border-radius: 15px;
+      padding: 30px;
+      max-width: 600px;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+      color: #333;
+      position: relative;
+    }
+
+    #instructions-content h2 {
+      font-size: 2em;
+      margin-bottom: 20px;
+      color: #4b0082;
+    }
+
+    #instructions-content p {
+      font-size: 1.2em;
+      margin: 10px 0;
+    }
+
+    #start-game {
+      margin-top: 20px;
+      background: linear-gradient(45deg, #ff4500, #ff8c00);
+      /* ENSURE BUTTON IS CLICKABLE */
+      cursor: pointer !important; 
+    }
+
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 2em;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 1em;
+      }
+      #game-container {
+        padding: 10px;
+      }
+      .status-box {
+          font-size: 1.2em;
+          padding: 3px 6px;
+      }
+      #timer-box {
+          font-size: 1.4em;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <audio id="bgMusic" src="carnival/audio/bg.mp3" loop></audio>
+
+  <div id="instructions-modal">
+    <div id="instructions-content">
+      <h2>🎯How To Play Shooting Game 🎯</h2>
+      <p>🎯 Use the **Mouse** to move the **Scope Crosshair.**</p>
+      <p>🔫 The **Bullet** comes from the fixed Position at the bottom.</p>
+      <p>💥 **Left Click** on the canvas to fire! **(0.9 second delay between shots!)**</p>
+      <p>🎯 The bullet will travel towards the scope's crosshair!</p>
+      <p>⭐ **Targets vanish and reappear** with different timing per line!</p>
+      <p>⏰ The game ends when the **timer hits zero**!</p>
+      <p>❌ **Missing a target** will **deduct 10 points** from your score!</p>
+      <button id="start-game">Start Game</button>
+    </div>
+  </div>
+
+  <div id="game-container">
+    
+    <div id="score-box" class="status-box">Score: 0</div>
+    <div id="misses-box" class="status-box">Misses: 0</div>
+    <div id="timer-box" class="status-box">Time: 60.0s</div>
+
+    <div class="game-message" id="game-message"></div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="controls">
+      <button id="home-button" onclick="playClickSoundAndNavigate('index.html')">Back to Carnival Map</button>
+    </div>
+  </div>
+
+  <audio id="clickSound" src="carnival/audio/click.mp3" preload="auto"></audio>
+  <audio id="fireSound" src="carnival/audio/shoot.mp3" preload="auto"></audio>
+  <audio id="hitSound" src="carnival/audio/splash.mp3" preload="auto"></audio>
+  <audio id="missSound" src="carnival/audio/miss.mp3" preload="auto"></audio>
+
+  <script>
+    const GAME_CONSTS = {
+      canvasWidth: 800,
+      canvasHeight: 500, 
+      
+      bulletRadius: 8,
+      
+      gunXFixed: 400, // Center X for fixed bullet source
+      gunYFixed: 485, // Center Y for fixed bullet source 
+      
+      // Fixed bullet source circle properties
+      sourceRadius: 25, 
+      sourceSquareSize: 8, // Small square size
+      
+      crosshairImageURL: 'carnival/image/crosshair.png', 
+      crosshairSize: 50, 
+      
+      targetDefinitions: [
+        { name: 'star', points: 20, img: 'carnival/image/star1.png', size: 100 },
+        { name: 'balloon', points: 60, img: 'carnival/image/balloon2.png', size: 100 },
+        { name: 'duck', points: 100, img: 'carnival/image/duck3.png', size: 100 },
+        { name: 'bottle', points: 80, img: 'carnival/image/bottle4.png', size: 100 },
+        { name: 'can', points: 40, img: 'carnival/image/can5.png', size: 100 }
+      ],
+      
+      targetLinesY: [
+          500 * 0.35, 
+          500 * 0.60, 
+          500 * 0.85  
+      ],
+      
+      // Target timings
+      lineTiming: [
+          { hideDuration: 3.0, showDuration: 2.5 }, 
+          { hideDuration: 1.5, showDuration: 4.5 }, 
+          { hideDuration: 2.0, showDuration: 3.5 }  
+      ],
+      
+      targetSpacing: 160, 
+      gameDuration: 60 * 1000, 
+      missDisplayDuration: 900,
+      bulletSpeed: 15,
+      // FIX: 0.9 second firing interval (900ms)
+      fireRateMS: 900 
+    };
+
+    let gameState = {
+      bulletX: 0,
+      bulletY: 0,
+      bulletVelocityX: 0,
+      bulletVelocityY: 0,
+      isShooting: false,
+      targets: [], 
+      gameMessage: '',
+      isGameActive: false, 
+      
+      crosshairX: GAME_CONSTS.canvasWidth / 2, 
+      crosshairY: GAME_CONSTS.canvasHeight / 2, 
+      
+      score: 0,
+      missCount: 0,
+      targetImages: {},
+      
+      crosshairImageObj: null, 
+      
+      missShot: { display: false, x: 0, y: 0, timer: 0 },
+      gameStartTime: 0,
+      timeLeft: GAME_CONSTS.gameDuration,
+      gameInterval: null,
+      
+      bulletTargetX: 0, 
+      bulletTargetY: 0,
+      nextShotTime: 0 
+    };
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const gameContainer = document.getElementById('game-container');
+    const gameMessageElement = document.getElementById('game-message');
+    const scoreBox = document.getElementById('score-box');
+    const missesBox = document.getElementById('misses-box');
+    const timerBox = document.getElementById('timer-box');
+    
+    // AUDIO REFERENCES
+    const clickSound = document.getElementById('clickSound'); 
+    const fireSound = document.getElementById('fireSound'); 
+    const hitSound = document.getElementById('hitSound');
+    const missSound = document.getElementById('missSound');
+
+    const instructionsModal = document.getElementById('instructions-modal');
+    const startButton = document.getElementById('start-game'); 
+    const bodyElement = document.body; 
+    
+    // BG MUSIC REFERENCE
+    const bgMusic = document.getElementById('bgMusic');
+
+    canvas.width = GAME_CONSTS.canvasWidth;
+    canvas.height = GAME_CONSTS.canvasHeight;
+
+    function loadImages() {
+      GAME_CONSTS.targetDefinitions.forEach(target => {
+        const img = new Image();
+        img.src = target.img;
+        gameState.targetImages[target.name] = img;
+      });
+      
+      gameState.crosshairImageObj = new Image();
+      gameState.crosshairImageObj.src = GAME_CONSTS.crosshairImageURL;
+    }
+    
+    function respawnTarget(target) {
+        const timing = GAME_CONSTS.lineTiming[target.lineIndex];
+        
+        const newDef = GAME_CONSTS.targetDefinitions[Math.floor(Math.random() * GAME_CONSTS.targetDefinitions.length)];
+        target.name = newDef.name;
+        target.points = newDef.points;
+        target.img = newDef.img;
+        target.size = newDef.size;
+        
+        target.isHit = false; 
+        target.isVisible = true; 
+        target.timer = timing.showDuration * 1000; 
+    }
+
+
+    function placeTargets() {
+      gameState.targets = []; 
+      const targetsPerLine = GAME_CONSTS.targetDefinitions.length;
+      const totalWidth = targetsPerLine * GAME_CONSTS.targetSpacing;
+      
+      const startX = (GAME_CONSTS.canvasWidth - totalWidth) / 2 + (GAME_CONSTS.targetSpacing / 2);
+
+      GAME_CONSTS.targetLinesY.forEach((lineY, lineIndex) => { 
+        
+        for (let targetIndex = 0; targetIndex < targetsPerLine; targetIndex++) {
+          const x = startX + (targetIndex * GAME_CONSTS.targetSpacing);
+
+          const initialTargetDef = GAME_CONSTS.targetDefinitions[targetIndex % GAME_CONSTS.targetDefinitions.length];
+
+          const newTarget = {
+            ...initialTargetDef,
+            x: x,
+            y: lineY, 
+            lineIndex: lineIndex, 
+            isVisible: true,
+            timer: 0, 
+            isHit: false, 
+          };
+          
+          respawnTarget(newTarget); 
+          
+          gameState.targets.push(newTarget);
+        }
+      });
+    }
+
+    // Single utility to play any sound
+    function playSound(sound) {
+      if (sound) {
+        try {
+          sound.currentTime = 0;
+          sound.play();
+        } catch (err) {}
+      }
+    }
+
+    // Function for button clicks and navigation
+    function playClickSoundAndNavigate(page) {
+      playSound(clickSound);
+      // Delay navigation slightly to allow sound to play
+      setTimeout(() => {
+        window.location.href = page;
+      }, 100); 
+    }
+
+    // --- BG AUDIO INITIALIZATION (REUSABLE) ---
+    function initializeAudio() {
+        // 1. Restore playback position
+        const storedTime = parseFloat(sessionStorage.getItem('bgMusicTime'));
+        if (!isNaN(storedTime)) {
+            bgMusic.currentTime = storedTime;
+        }
+
+        // 2. Attempt to play music
+        const playPromise = bgMusic.play();
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                // Autoplay started
+            }).catch(error => {
+                // Autoplay prevented (e.g., music wasn't muted)
+                // Add a temporary interaction listener to start the audio unmuted
+                document.addEventListener('click', function startAudio() {
+                    bgMusic.play();
+                    document.removeEventListener('click', startAudio);
+                }, { once: true });
+            });
+        }
+
+        // 3. Save playback position to session storage periodically
+        setInterval(() => {
+            sessionStorage.setItem('bgMusicTime', bgMusic.currentTime);
+        }, 1000); // Save every second
+    }
+    // --- END BG AUDIO INITIALIZATION ---
+    
+    function drawBulletSource() {
+        // Draw the main circle
+        ctx.fillStyle = '#fcbe13'; 
+        ctx.beginPath();
+        ctx.arc(GAME_CONSTS.gunXFixed, GAME_CONSTS.gunYFixed, GAME_CONSTS.sourceRadius, 0, Math.PI * 2); 
+        ctx.fill();
+        
+        // Draw the small square in the center (where the bullet originates)
+        const sqSize = GAME_CONSTS.sourceSquareSize;
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(GAME_CONSTS.gunXFixed - sqSize / 2, GAME_CONSTS.gunYFixed - sqSize / 2, sqSize, sqSize);
+    }
+    
+    function drawCrosshairScope() {
+        if (!gameState.isGameActive || !gameState.crosshairImageObj) return;
+
+        const size = GAME_CONSTS.crosshairSize;
+        const x = gameState.crosshairX - size / 2;
+        const y = gameState.crosshairY - size / 2;
+
+        if (gameState.crosshairImageObj.complete) {
+            ctx.drawImage(gameState.crosshairImageObj, x, y, size, size);
+        } else {
+            ctx.fillStyle = '#FF0000';
+            ctx.beginPath();
+            ctx.arc(gameState.crosshairX, gameState.crosshairY, 8, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      gameState.targets.forEach(target => {
+        if (target.isVisible) { 
+            const img = gameState.targetImages[target.name];
+            
+            const targetDrawX = target.x - target.size / 2;
+            const targetDrawY = target.y - target.size; 
+            
+            if (img && img.complete) {
+              ctx.drawImage(img, targetDrawX, targetDrawY, target.size, target.size);
+            } else {
+              ctx.fillStyle = 'red';
+              ctx.font = `${target.size}px Bangers`;
+              ctx.textAlign = 'center';
+              ctx.fillText(target.name.toUpperCase().slice(0, 1), target.x, targetDrawY + target.size / 2);
+            }
+        }
+      });
+      
+      drawBulletSource(); 
+
+      if (gameState.isShooting) {
+        ctx.fillStyle = '#ff0000'; 
+        ctx.beginPath();
+        ctx.arc(gameState.bulletX, gameState.bulletY, GAME_CONSTS.bulletRadius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (gameState.missShot.display) {
+        ctx.fillStyle = 'red';
+        ctx.font = '30px Bangers';
+        ctx.textAlign = 'center';
+        ctx.fillText('MISS', gameState.missShot.x, gameState.missShot.y);
+      }
+      
+      drawCrosshairScope(); 
+    }
+    
+    function checkCollision(bulletX, bulletY, target) {
+        const targetCenterX = target.x;
+        const targetCenterY = target.y - (target.size / 2); 
+        
+        const dx = bulletX - targetCenterX;
+        const dy = bulletY - targetCenterY; 
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        const hitRadius = target.size / 2;
+
+        return distance < GAME_CONSTS.bulletRadius + hitRadius;
+    }
+
+    function updateTimerUI() {
+        const secondsLeft = Math.max(0, gameState.timeLeft / 1000);
+        timerBox.textContent = `Time: ${secondsLeft.toFixed(1)}s`;
+
+        if (secondsLeft < 10) {
+            timerBox.style.borderColor = 'red';
+        } else {
+            timerBox.style.borderColor = '#ff4500';
+        }
+    }
+
+    function updateScoreUI() {
+        scoreBox.textContent = `Score: ${gameState.score}`;
+        missesBox.textContent = `Misses: ${gameState.missCount}`;
+    }
+
+    // --- MODIFIED: REDIRECT TO EVALUATION PAGE ---
+    function endGame() {
+        clearInterval(gameState.gameInterval);
+        gameState.isGameActive = false;
+        gameState.timeLeft = 0;
+        updateTimerUI();
+        
+        // Save score before redirecting (optional, but good practice)
+        localStorage.setItem('lastGameScore', gameState.score);
+        
+        // Redirect to evaluation page
+        window.location.replace('evaluation.html');
+    }
+    // ---------------------------------------------
+
+    function update() {
+      if (!gameState.isGameActive) return;
+
+      const dt = 1000 / 60; 
+
+      // --- TARGET VISIBILITY/TIMER LOGIC ---
+      gameState.targets.forEach(target => {
+          target.timer -= dt;
+
+          if (target.timer <= 0) {
+              const timing = GAME_CONSTS.lineTiming[target.lineIndex];
+              target.isVisible = !target.isVisible;
+
+              if (target.isVisible) {
+                  target.timer = timing.showDuration * 1000;
+                  respawnTarget(target); 
+              } else {
+                  target.timer = timing.hideDuration * 1000;
+              }
+          }
+      });
+
+      if (gameState.missShot.display) {
+          gameState.missShot.timer -= dt; 
+          if (gameState.missShot.timer <= 0) {
+              gameState.missShot.display = false;
+          }
+      }
+      
+      // Timer update logic
+      if (gameState.gameStartTime > 0) {
+          const elapsedTime = Date.now() - gameState.gameStartTime;
+          gameState.timeLeft = GAME_CONSTS.gameDuration - elapsedTime;
+          updateTimerUI();
+
+          if (gameState.timeLeft <= 0) {
+              endGame();
+          }
+      }
+
+      if (gameState.isShooting) {
+        gameState.bulletX += gameState.bulletVelocityX;
+        gameState.bulletY += gameState.bulletVelocityY;
+
+        let hit = false;
+
+        gameState.targets.forEach(target => {
+            if (target.isVisible) { 
+              if (checkCollision(gameState.bulletX, gameState.bulletY, target)) {
+                playSound(hitSound); // Hit sound
+                gameState.isShooting = false;
+                
+                respawnTarget(target); 
+
+                gameState.score += target.points;
+                gameState.gameMessage = `HIT ${target.name.toUpperCase()}! +${target.points} points!`;
+                gameMessageElement.textContent = gameState.gameMessage;
+                updateScoreUI();
+                hit = true;
+                return;
+              }
+            }
+        });
+        
+        if (hit) return;
+
+        const reachedTargetX = (gameState.bulletVelocityX > 0 && gameState.bulletX >= gameState.bulletTargetX) || (gameState.bulletVelocityX < 0 && gameState.bulletX <= gameState.bulletTargetX);
+        const reachedTargetY = (gameState.bulletVelocityY > 0 && gameState.bulletY >= gameState.bulletTargetY) || (gameState.bulletVelocityY < 0 && gameState.bulletY <= gameState.bulletTargetY);
+        
+        const overshoot = (reachedTargetX && reachedTargetY) && (gameState.bulletTargetY <= canvas.height + 100 && gameState.bulletTargetY >= -100);
+
+        if (!hit && (gameState.bulletY < -100 || gameState.bulletY > canvas.height + 100 || gameState.bulletX > canvas.width + 100 || gameState.bulletX < -100 || overshoot)) {
+          
+          playSound(missSound); // Miss sound
+          gameState.isShooting = false;
+          gameState.missCount++;
+          gameState.score = Math.max(0, gameState.score - 10); 
+          
+          const missX = Math.min(Math.max(gameState.bulletX, 50), canvas.width - 50);
+          const missY = Math.min(Math.max(gameState.bulletY, 50), canvas.height - 50);
+
+          gameState.missShot = { display: true, x: missX, y: missY, timer: GAME_CONSTS.missDisplayDuration };
+          
+          gameState.gameMessage = `MISS! -10 points! Total misses: ${gameState.missCount}.`;
+          gameMessageElement.textContent = gameState.gameMessage;
+          updateScoreUI();
+
+          setTimeout(() => {
+              if (!gameState.isShooting) gameMessageElement.textContent = '';
+          }, 1500);
+        }
+      }
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      if (gameState.isGameActive || instructionsModal.style.display !== 'none') { 
+        requestAnimationFrame(gameLoop);
+      }
+    }
+    
+    function handleShoot(targetClickX, targetClickY) {
+      // Check for fire rate (0.9 seconds)
+      if (Date.now() < gameState.nextShotTime) {
+          gameMessageElement.textContent = `Reloading... Wait ${((gameState.nextShotTime - Date.now()) / 1000).toFixed(1)}s`;
+          setTimeout(() => {
+            if (!gameState.isShooting) gameMessageElement.textContent = '';
+          }, 1000);
+          return;
+      }
+
+      if (!gameState.isShooting && gameState.isGameActive) {
+        playSound(fireSound); // Fire sound
+        gameState.isShooting = true;
+        gameState.missShot.display = false;
+        
+        // Set next shot time
+        gameState.nextShotTime = Date.now() + GAME_CONSTS.fireRateMS;
+
+        // Bullet start point is the center of the fixed source circle/square
+        const bulletStartX = GAME_CONSTS.gunXFixed;
+        const bulletStartY = GAME_CONSTS.gunYFixed; 
+
+        gameState.bulletX = bulletStartX;
+        gameState.bulletY = bulletStartY;
+        
+        gameState.bulletTargetX = targetClickX;
+        gameState.bulletTargetY = targetClickY;
+
+        const dx = targetClickX - bulletStartX;
+        const dy = targetClickY - bulletStartY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance > 0) {
+            gameState.bulletVelocityX = (dx / distance) * GAME_CONSTS.bulletSpeed;
+            gameState.bulletVelocityY = (dy / distance) * GAME_CONSTS.bulletSpeed;
+        } else { 
+            gameState.bulletVelocityX = 0;
+            gameState.bulletVelocityY = -GAME_CONSTS.bulletSpeed; 
+        }
+        
+        gameMessageElement.textContent = '';
+      }
+    }
+    
+    // Cursor confinement logic (using gameContainer)
+    gameContainer.addEventListener('mousemove', (e) => {
+        if (gameState.isGameActive) {
+            const rect = canvas.getBoundingClientRect();
+            
+            // Calculate mouse position relative to the canvas
+            let mouseX = e.clientX - rect.left;
+            let mouseY = e.clientY - rect.top;
+            
+            // CONFINEMENT LOGIC: Clamp the coordinates to the canvas boundaries
+            gameState.crosshairX = Math.max(0, Math.min(mouseX, canvas.width));
+            gameState.crosshairY = Math.max(0, Math.min(mouseY, canvas.height));
+        }
+    });
+
+    canvas.addEventListener('mousedown', (e) => {
+        if (e.button === 0 && gameState.isGameActive) {
+            handleShoot(gameState.crosshairX, gameState.crosshairY);
+        }
+    });
+    
+    canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+
+    document.addEventListener('keydown', (e) => {
+      if (!gameState.isGameActive) return;
+      
+      if (e.key === ' ') {
+        e.preventDefault();
+        handleShoot(gameState.crosshairX, gameState.crosshairY); 
+      }
+    });
+
+    function startTimer() {
+        gameState.gameStartTime = Date.now();
+        gameState.timeLeft = GAME_CONSTS.gameDuration;
+    }
+
+    function resetGame() {
+      // NOTE: This function is only called on 'Start Game' from the modal.
+      if (gameState.gameInterval) {
+          clearInterval(gameState.gameInterval);
+      }
+      
+      gameState.score = 0;
+      gameState.missCount = 0;
+      gameState.isGameActive = true;
+      gameState.gameMessage = '';
+      gameMessageElement.textContent = '';
+      
+      gameState.crosshairX = GAME_CONSTS.canvasWidth / 2;
+      gameState.crosshairY = GAME_CONSTS.canvasHeight / 2;
+      
+      // Ensure cursor is hidden (it is already set via CSS 'none !important' on body)
+      bodyElement.style.setProperty('cursor', 'none', 'important'); 
+
+      // Enable mouse interaction on the game elements
+      gameContainer.style.pointerEvents = 'auto'; 
+      
+      startTimer();
+      gameState.gameInterval = setInterval(update, 1000 / 60);
+
+      initRound();
+      updateScoreUI();
+      updateTimerUI();
+      
+      requestAnimationFrame(gameLoop);
+    }
+
+    function initRound() {
+      gameState.bulletX = 0;
+      gameState.bulletY = 0;
+      gameState.bulletVelocityX = 0;
+      gameState.bulletVelocityY = 0;
+      gameState.isShooting = false;
+      gameState.missShot.display = false;
+      gameState.nextShotTime = 0; // Allow first shot immediately
+      placeTargets();
+    }
+
+    loadImages();
+
+    const initializeGame = () => {
+        initRound(); 
+        draw(); 
+        updateScoreUI();
+        updateTimerUI();
+        // Restore default cursor before the game starts (for the instructions modal)
+        bodyElement.style.setProperty('cursor', 'default', 'important'); 
+        requestAnimationFrame(gameLoop); 
+        initializeAudio(); // Initialize BG audio
+    };
+
+    initializeGame();
+    
+    startButton.addEventListener('click', () => {
+      playSound(clickSound); // Click sound for Start Game
+      instructionsModal.style.display = 'none';
+      resetGame(); 
+    });
+  </script>
+</body>
+</html>
